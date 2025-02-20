@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int modify_password(string password) {
+int generate_key(string password) {
 	//Convert password to the sum of the decimal value of each letter
 	int sum = 0;
 	for (char c : password) {
@@ -14,10 +14,24 @@ int modify_password(string password) {
 	return sum;
 }
 
+void encrypt_decrypt(vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, int key) {
+	//Process file in chunks
+	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
+		size_t bytesRead = file.gcount();
+		for (size_t i = 0; i < bytesRead; i++) {
+			if (choice == 1)
+				buffer[i] = buffer[i] + key;
+			if (choice == 2)
+				buffer[i] = buffer[i] - key;
+		}
+		tempFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
+	}
+}
+
 //This function will encrypt / decrypt a single file
 void open_file(string filePath, string password, int choice) {
-	//Get the password's sum of the decimal value of each letter and use it to encrypt / decrypt the byte
-	int sum = modify_password(password);
+	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
+	int key = generate_key(password);
 
 	//Open file to read / temp file to write
 	//tempFile is a temporary file which will save encrypted data of the file
@@ -29,17 +43,7 @@ void open_file(string filePath, string password, int choice) {
 	//Encrypt / Decrypt bytes by chunks
 	const size_t buffer_size = 65536; //64 KB chunks
 	vector<unsigned char> buffer(buffer_size);
-	//Process file in chunks
-	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
-		size_t bytesRead = file.gcount();
-		for (size_t i = 0; i < bytesRead; i++) {
-			if (choice == 1)
-				buffer[i] = buffer[i] + sum;
-			if (choice == 2)
-				buffer[i] = buffer[i] - sum;
-		}
-		tempFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
-	}
+	encrypt_decrypt(buffer, file, tempFile, choice, key);
 
 	//Close files
 	file.close();
