@@ -14,6 +14,7 @@ int generate_key(string password) {
 	return sum;
 }
 
+//This function will encrypt / decrypt a single file
 void encrypt_decrypt(vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, int key) {
 	//Process file in chunks
 	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
@@ -28,7 +29,7 @@ void encrypt_decrypt(vector<unsigned char>& buffer, fstream& file, fstream& temp
 	}
 }
 
-//This function will encrypt / decrypt a single file
+//This function locates the current file
 void open_file(string filePath, string password, int choice) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
 	int key = generate_key(password);
