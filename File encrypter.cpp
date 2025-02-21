@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
-#include <sys/stat.h>
 
 using namespace std;
 
@@ -15,22 +14,32 @@ int generate_key(string password) {
 }
 
 //This function will encrypt / decrypt a single file
-void encrypt_decrypt(vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, int key) {
+void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, int key) {
+	int totalProcessed = 0;
+	
 	//Process file in chunks
 	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
 		size_t bytesRead = file.gcount();
 		for (size_t i = 0; i < bytesRead; i++) {
+			//Encrypt
 			if (choice == 1)
 				buffer[i] = buffer[i] + key;
+			//Decrypt
 			if (choice == 2)
 				buffer[i] = buffer[i] - key;
 		}
+
+		// Calculate and display progress
+		totalProcessed += bytesRead;
+		double progress = (static_cast<double>(totalProcessed) / fileSize) * 100;
+		cout << "\rCompleted: " << fixed << setprecision(2) << progress << "%   " << flush; // Overwrites the same line
+
 		tempFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
 	}
 }
 
 //This function locates the current file
-void open_file(string filePath, string password, int choice) {
+void open_file(string filePath, string password, int choice, int chunk) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
 	int key = generate_key(password);
 
@@ -41,10 +50,22 @@ void open_file(string filePath, string password, int choice) {
 	file.open(filePath, ios::in | ios::binary);
 	tempFile.open(tempFilePath, ios::out | ios::binary);
 
+	//Get the file size
+	system("cls");
+	uintmax_t fileSize = filesystem::file_size(filePath);
+	if (fileSize < pow(1024, 3))
+		cout << "File size: " << setprecision(2) << fileSize / pow(1024, 2) << " MB" << endl;
+	else
+		cout << "File size: " << setprecision(2) << fileSize / pow(1024, 3) << " GB" << endl;
+
 	//Encrypt / Decrypt bytes by chunks
-	const size_t buffer_size = 65536; //64 KB chunks
+	size_t buffer_size;
+	if (chunk == 0)
+		buffer_size = 65536; //64 KB chunks
+	else
+		buffer_size = chunk;
 	vector<unsigned char> buffer(buffer_size);
-	encrypt_decrypt(buffer, file, tempFile, choice, key);
+	encrypt_decrypt(fileSize, buffer, file, tempFile, choice, key);
 
 	//Close files
 	file.close();
@@ -62,8 +83,13 @@ void open_file(string filePath, string password, int choice) {
 	tempFile.close();
 }
 
+void encrypt_directory() {
+
+}
+
 int main() {
 	int choice;
+	int chunk;
 	string password;
 	string filepath;
 	bool go_again = true;
@@ -73,7 +99,12 @@ int main() {
 		system("cls");
 		cout << "1) Encrypt\n2) Decrypt" << endl;
 		cout << "\nChoice: ";
-		if (cin >> choice && choice == 1) {
+		cin >> choice;
+		system("cls");
+		cout << "Enter the chunk size in Bytes or type \"0\" to use the default 64 KB size\n(performs calculations per 64 KB of data in each iteration.\nBigger chunks help speed up calculations for large files): ";
+		cin >> chunk;
+		system("cls");
+		if (choice == 1) {
 			cout << "Enter a password for encryption: ";
 			cin >> password;
 			system("cls");
@@ -90,7 +121,7 @@ int main() {
 			cout << "Decrypting..." << endl;
 		}
 
-		open_file(filepath, password, choice);
+		open_file(filepath, password, choice, chunk);
 		system("cls");
 		cout << "Done!" << endl;
 
