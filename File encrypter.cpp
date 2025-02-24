@@ -40,7 +40,7 @@ void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream&
 }
 
 //This function locates the current file
-void open_file(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec) {
+void open_file(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
 	int key = generate_key(password);
 
@@ -75,6 +75,7 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 	encrypt_decrypt(fileSize, buffer, file, tempFile, choice, key);
 	auto end = chrono::steady_clock::now();
 	sec = end - start;
+	total_sec += sec.count();
 
 	//Close files
 	file.close();
@@ -92,7 +93,7 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 	tempFile.close();
 }
 
-void open_directory(string filePath, string password, int choice, int chunk) {
+void open_directory(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	for (const auto& entry : filesystem::directory_iterator(filePath)) {
 		int key = generate_key(password);
 
@@ -100,6 +101,54 @@ void open_directory(string filePath, string password, int choice, int chunk) {
 			if (entry.is_regular_file()) {  
 				//cout << entry.path() << endl;
 				cout << entry.path().filename() << endl;
+
+				//Open file to read / temp file to write
+				//tempFile is a temporary file which will save encrypted data of the file
+				fstream file, tempFile;
+				string tempFilePath = "temp.txt";
+				file.open(entry.path(), ios::in | ios::binary);
+				tempFile.open(tempFilePath, ios::out | ios::binary);
+
+				//Get the file size
+				system("cls");
+				uintmax_t fileSize = filesystem::file_size(entry.path());
+				if (fileSize >= pow(1024, 3))
+					cout << "File size: " << fixed << setprecision(2) << fileSize / pow(1024, 3) << " GB" << endl;
+				else if (fileSize >= pow(1024, 2))
+					cout << "File size: " << fixed << setprecision(2) << fileSize / pow(1024, 2) << " MB" << endl;
+				else if (fileSize >= 1024)
+					cout << "File size: " << fixed << setprecision(2) << fileSize / 1024 << " KB" << endl;
+				else
+					cout << "File size: " << fixed << setprecision(2) << fileSize << " B" << endl;
+
+				//Encrypt / Decrypt bytes by chunks
+				size_t buffer_size;
+				if (chunk == 0)
+					buffer_size = 65536; //64 KB chunks
+				else
+					buffer_size = chunk;
+				vector<unsigned char> buffer(buffer_size);
+				//Get the time to process
+				auto start = chrono::steady_clock::now();
+				encrypt_decrypt(fileSize, buffer, file, tempFile, choice, key);
+				auto end = chrono::steady_clock::now();
+				sec = end - start;
+				total_sec += sec.count();
+
+				//Close files
+				file.close();
+				tempFile.close();
+
+				//Open file to write / temp file to read
+				file.open(entry.path(), ios::out | ios::binary);
+				tempFile.open(tempFilePath, ios::in | ios::binary);
+
+				while (tempFile.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || tempFile.gcount() > 0)
+					file.write(reinterpret_cast<char*>(buffer.data()), tempFile.gcount());
+
+				//Close files
+				file.close();
+				tempFile.close();
 			}
 			else if (entry.is_directory()) {  
 				for (const auto& entry2 : filesystem::recursive_directory_iterator(entry.path(), filesystem::directory_options::skip_permission_denied)) {
@@ -131,6 +180,7 @@ int main() {
 	bool process_directory = false;
 	char restart;
 	chrono::duration<double> sec;
+	double total_sec;
 
 	while (go_again == true) {
 		system("cls");
@@ -168,17 +218,19 @@ int main() {
 		}
 
 		if (process_directory == false)
-			open_file(filepath, password, choice, chunk, sec);
+			open_file(filepath, password, choice, chunk, sec, total_sec);
 		if (process_directory == true)
-			open_directory(filepath, password, choice, chunk);
+			open_directory(filepath, password, choice, chunk, sec, total_sec);
 		system("cls");
-		cout << "Time to execute: " << sec << endl;
+		cout << "Time to execute: " << total_sec << endl;
 		cout << "Done!" << endl;
 
 		go_again = false;
 		cout << "Go again? y/n: ";
-		if (cin >> restart && restart == 'y')
+		if (cin >> restart && restart == 'y') {
 			go_again = true;
+			total_sec = 0;
+		}
 		else if (restart == false)
 			go_again = false;
 	}
