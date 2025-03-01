@@ -47,7 +47,7 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 	//Open file to read / temp file to write
 	//tempFile is a temporary file which will save encrypted data of the file
 	fstream file, tempFile;
-	string tempFilePath = "temp.txt";
+	string tempFilePath = "src/Temp/temp.txt";
 	file.open(filePath, ios::in | ios::binary);
 	tempFile.open(tempFilePath, ios::out | ios::binary);
 
@@ -92,7 +92,7 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 	file.close();
 	tempFile.close();
 }
-
+//This function locates the current directory
 void open_directory(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	for (const auto& entry : filesystem::directory_iterator(filePath)) {
 		int key = generate_key(password);
@@ -105,12 +105,13 @@ void open_directory(string filePath, string password, int choice, int chunk, chr
 				//Open file to read / temp file to write
 				//tempFile is a temporary file which will save encrypted data of the file
 				fstream file, tempFile;
-				string tempFilePath = "temp.txt";
+				string tempFilePath = "src/Temp/temp.txt";
 				file.open(entry.path(), ios::in | ios::binary);
 				tempFile.open(tempFilePath, ios::out | ios::binary);
 
 				//Get the file size
 				system("cls");
+				cout << "Chunk size: " << chunk << " bytes" << endl;
 				uintmax_t fileSize = filesystem::file_size(entry.path());
 				if (fileSize >= pow(1024, 3))
 					cout << "File size: " << fixed << setprecision(2) << fileSize / pow(1024, 3) << " GB" << endl;
@@ -171,9 +172,41 @@ void open_directory(string filePath, string password, int choice, int chunk, chr
 	}
 }
 
+//Load default settings
+void load_settings(int& chunk_size) {
+	ifstream file;
+	file.open("src/Saves/options.txt");
+	if (file.is_open()) {
+		string line;
+		while (getline(file, line)) {
+			if (line.find("chunk size: ") == 0) {
+				chunk_size = stoi(line.substr(12));
+				cout << chunk_size << endl << endl;
+			}
+		}
+	}
+	else
+		cout << "Failed to load settings!" << endl;
+	file.close();
+}
+//Save default settings
+void save_settings(int& chunk_size) {
+	ofstream file;
+	file.open("src/Saves/options.txt");
+	if (file.is_open()) {
+		file.clear();
+		string string_chunk_size = "chunk size: " + to_string(chunk_size);
+		file << string_chunk_size;
+		cout << "saved:" << string_chunk_size << endl;
+	}
+	else
+		cout << "Failed to save values!" << endl;
+	file.close();
+}
+
 int main() {
 	int choice;
-	int chunk;
+	int chunk = 65536;
 	string password;
 	string filepath;
 	bool go_again = true;
@@ -182,15 +215,13 @@ int main() {
 	chrono::duration<double> sec;
 	double total_sec;
 
+	load_settings(chunk);
+
 	while (go_again == true) {
 		system("cls");
-		cout << "1) Encrypt\n2) Decrypt" << endl;
+		cout << "1) Encrypt\n2) Decrypt\n3) Set chunk size" << endl;
 		cout << "\nChoice: ";
 		cin >> choice;
-		system("cls");
-		cout << "Enter the chunk size in Bytes or type \"0\" to use the default 64 KB size\n(performs calculations per 64 KB of data in each iteration.\n"
-			"Bigger chunks help speed up calculations for large files)\n\nExamples:\n1 KB = 1024 B\n120 KB = 122880 B\n500 MB = 524288000 B\n1 GB = 1073741824 B\n\nChoice: ";
-		cin >> chunk;
 		system("cls");
 		if (choice == 1) {
 			cout << "Enter a password for encryption: ";
@@ -208,7 +239,7 @@ int main() {
 			cout << "Enter a password for decryption: ";
 			cin >> password;
 			system("cls");
-			cout << "0) Decrypt single file\n1) Decrypt entyre directory\n";
+			cout << "0) Decrypt single file\n1) Decrypt entire directory\n";
 			cout << "\nChoice: ";
 			cin >> process_directory;
 			system("cls");
@@ -216,13 +247,22 @@ int main() {
 			cin >> filepath;
 			cout << "Decrypting..." << endl;
 		}
+		else if (choice == 3) {
+			system("cls");
+			cout << "Enter the new chunk size in Bytes (Bigger chunks help speed up calculations for large files)\n\nExamples:\n1 KB = 1024 B\n120 KB = 122880 B\n500 MB = 524288000 B\n1 GB = 1073741824 B\n\nChoice: ";
+			cin >> chunk;
+			save_settings(chunk);
+			cout << "New chunk size saved to memory! " << endl;
+			system("pause");
+			main();
+		}
 
 		if (process_directory == false)
 			open_file(filepath, password, choice, chunk, sec, total_sec);
 		if (process_directory == true)
 			open_directory(filepath, password, choice, chunk, sec, total_sec);
 		system("cls");
-		cout << "Time to execute: " << total_sec << endl;
+		cout << "Time to execute: " << total_sec << " sec" << endl;
 		cout << "Done!" << endl;
 
 		go_again = false;
