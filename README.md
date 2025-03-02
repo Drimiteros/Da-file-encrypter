@@ -1,4 +1,24 @@
 # File-Encrypter 📂
-A simple template of a program that allows you to **encrypt / decrypt** many types of files (single or a full directory) in your Windows PC. It alters each byte that constitutes each file you choose to modify, making it unreadable.
 
-See it in action: https://www.youtube.com/watch?v=X3O1fwBlgvs
+### **🎯 Overview**
+File-Encrypter is a comprehensive encryption and decryption tool designed for Windows environments, capable of handling both individual files and entire directories. By systematically modifying each byte of a selected file, this software ensures that its contents remain unreadable until decrypted using the appropriate mechanism.
+
+---
+
+### **⚠️ Disclaimer**
+This implementation is not currently recommended for security-critical applications. However, its modular architecture allows for customization and enhancement to meet specialized cryptographic needs.
+
+## Features 🔐
+
+✅ Encrypt and decrypt individual files, including `.txt`, `.png`, `.mp4`, and more.
+
+✅ Recursively encrypt and decrypt entire directories, ensuring all contained files are processed.
+
+✅ Read-only decryption mode allows encrypted `.txt` files to be viewed in the console without modifying the original file.
+
+✅ Optimized processing for improved encryption speed and system efficiency.
+
+## Demonstration 🎥
+
+For a visual walkthrough of the program’s functionality, watch the demonstration video: [YouTube Video](https://www.youtube.com/watch?v=X3O1fwBlgvs)
+
