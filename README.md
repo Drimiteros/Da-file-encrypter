@@ -18,8 +18,8 @@ This implementation is not currently recommended for security-critical applicati
 
 ✅ Optimized processing for improved encryption speed and system efficiency.
 
-## Setbacks 🔐
-👎 Poor encryption.
+## Setbacks 👎
+📛 Poor encryption.
 
 ## Demonstration 🎥
 
