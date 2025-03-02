@@ -14,7 +14,7 @@ This implementation is not currently recommended for security-critical applicati
 
 ✅ Recursively encrypt and decrypt entire directories, ensuring all contained files are processed.
 
-✅ Read-only decryption mode allows encrypted `.txt` files to be viewed in the console without modifying the original file.
+✅ Read-only decryption mode allows encrypted `.txt` files to be viewed in the console.
 
 ✅ Optimized processing for improved encryption speed and system efficiency.
 
