@@ -23,6 +23,8 @@ This implementation is not currently recommended for security-critical applicati
 ## Setbacks 👎
 📛 Poor encryption.
 
+---
+
 ## Demonstration 🎥
 
 For a visual walkthrough of the program’s functionality, watch the demonstration video: [YouTube](https://www.youtube.com/watch?v=X3O1fwBlgvs)
