@@ -38,8 +38,30 @@ void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream&
 		tempFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
 	}
 }
+void decrypt_read_only(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, int key, double& total_sec, chrono::duration<double>& sec, auto& start) {
+	int totalProcessed = 0;
 
-//This function locates the current file
+	//Process file in chunks
+	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
+		size_t bytesRead = file.gcount();
+		//Decrypt
+		for (size_t i = 0; i < bytesRead; i++)
+			buffer[i] = buffer[i] - key;
+
+		// Calculate and display progress
+		totalProcessed += bytesRead;
+		double progress = (static_cast<double>(totalProcessed) / fileSize) * 100;
+		cout << "\rCompleted: " << fixed << setprecision(2) << progress << "%   " << flush; // Overwrites the same line
+		auto end = chrono::steady_clock::now();
+		sec = end - start;
+		total_sec += sec.count();
+		cout << endl << endl << "File's data: " << endl;
+		cout << "  " << reinterpret_cast<char*>(buffer.data()) << endl << endl;
+		system("pause");
+	}
+}
+
+//This function locates the current file, sends it for encryption/decryption, deletes it and replaces with new encrypted/decrypted file
 void open_file(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
 	int key = generate_key(password);
@@ -91,6 +113,42 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 	//Close files
 	file.close();
 	tempFile.close();
+}
+//This function locates the current file, sends it for decryption. It keeps the OG file
+void open_file_read_only(string filePath, string password, int chunk, chrono::duration<double>& sec, double& total_sec) {
+	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
+	int key = generate_key(password);
+
+	//Open file to read / temp file to write
+	//tempFile is a temporary file which will save encrypted data of the file
+	fstream file;
+	file.open(filePath, ios::in | ios::binary);
+
+	//Get the file size
+	system("cls");
+	uintmax_t fileSize = filesystem::file_size(filePath);
+	if (fileSize >= pow(1024, 3))
+		cout << "File size: " << fixed << setprecision(2) << fileSize / pow(1024, 3) << " GB" << endl;
+	else if (fileSize >= pow(1024, 2))
+		cout << "File size: " << fixed << setprecision(2) << fileSize / pow(1024, 2) << " MB" << endl;
+	else if (fileSize >= 1024)
+		cout << "File size: " << fixed << setprecision(2) << fileSize / 1024 << " KB" << endl;
+	else
+		cout << "File size: " << fixed << setprecision(2) << fileSize << " B" << endl;
+
+	//Decrypt bytes by chunks
+	size_t buffer_size;
+	if (chunk == 0)
+		buffer_size = 65536; //64 KB chunks
+	else
+		buffer_size = chunk;
+	vector<unsigned char> buffer(buffer_size);
+	//Get the time to process. Timer finishes inside the function
+	auto start = chrono::steady_clock::now();
+	decrypt_read_only(fileSize, buffer, file, key, total_sec, sec, start);
+
+	//Close files
+	file.close();
 }
 //This function locates the current directory
 void open_directory(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
@@ -212,6 +270,7 @@ int main() {
 	bool go_again = true;
 	bool process_directory = false;
 	char restart;
+	bool read_only = false;
 	chrono::duration<double> sec;
 	double total_sec;
 
@@ -219,11 +278,13 @@ int main() {
 
 	while (go_again == true) {
 		system("cls");
-		cout << "1) Encrypt\n2) Decrypt\n3) Set chunk size" << endl;
+		cout << "~ File Encrypter ~" << endl << endl;
+		cout << "1) Encrypt\n2) Decrypt\n3) Decrypt (Read only)\n4) Set chunk size" << endl;
 		cout << "\nChoice: ";
 		cin >> choice;
 		system("cls");
 		if (choice == 1) {
+			read_only = false;
 			cout << "Enter a password for encryption: ";
 			cin >> password;
 			system("cls");
@@ -236,6 +297,7 @@ int main() {
 			cout << "Encrypting..." << endl;
 		}
 		else if (choice == 2) {
+			read_only = false;
 			cout << "Enter a password for decryption: ";
 			cin >> password;
 			system("cls");
@@ -248,6 +310,16 @@ int main() {
 			cout << "Decrypting..." << endl;
 		}
 		else if (choice == 3) {
+			cout << "Enter a password for decryption: ";
+			cin >> password;
+			process_directory = false;
+			read_only = true;
+			system("cls");
+			cout << "Enter the path:";
+			cin >> filepath;
+			cout << "Decrypting..." << endl;
+		}
+		else if (choice == 4) {
 			system("cls");
 			cout << "Enter the new chunk size in Bytes (Bigger chunks help speed up calculations for large files)\n\nExamples:\n1 KB = 1024 B\n120 KB = 122880 B\n500 MB = 524288000 B\n1 GB = 1073741824 B\n\nChoice: ";
 			cin >> chunk;
@@ -257,10 +329,13 @@ int main() {
 			main();
 		}
 
-		if (process_directory == false)
+		if (process_directory == false && read_only == false)
 			open_file(filepath, password, choice, chunk, sec, total_sec);
-		if (process_directory == true)
+		if (process_directory == false && read_only == true)
+			open_file_read_only(filepath, password, chunk, sec, total_sec);
+		if (process_directory == true && read_only == false)
 			open_directory(filepath, password, choice, chunk, sec, total_sec);
+
 		system("cls");
 		cout << "Time to execute: " << total_sec << " sec" << endl;
 		cout << "Done!" << endl;
