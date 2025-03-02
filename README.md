@@ -25,5 +25,5 @@ This implementation is not currently recommended for security-critical applicati
 
 ## Demonstration 🎥
 
-For a visual walkthrough of the program’s functionality, watch the demonstration video: [YouTube Video](https://www.youtube.com/watch?v=X3O1fwBlgvs)
+For a visual walkthrough of the program’s functionality, watch the demonstration video: [YouTube](https://www.youtube.com/watch?v=X3O1fwBlgvs)
 
