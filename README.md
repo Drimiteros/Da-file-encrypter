@@ -6,7 +6,7 @@ File-Encrypter is a comprehensive encryption and decryption tool designed for Wi
 ---
 
 ### **⚠️ Disclaimer**
-This implementation is not currently recommended for security-critical applications. However, its modular architecture allows for customization and enhancement to meet specialized cryptographic needs.
+This implementation is not currently recommended for security-critical applications. However, it can serve well for personal use and its modular architecture allows for customization and enhancement to meet specialized cryptographic needs.
 
 ---
 
