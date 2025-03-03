@@ -2,32 +2,43 @@
 #include <fstream>
 #include <filesystem>
 #include <chrono>
+#include <cryptlib.h>
+#include <sha.h>
+#include <hex.h>
+#include <hmac.h>
+#include <pwdbased.h>
+#include <filters.h>
 
 using namespace std;
+using namespace CryptoPP;
 
-int generate_key(string password) {
-	//Convert password to the sum of the decimal value of each letter
-	int sum = 0;
-	for (char c : password) {
-		sum += static_cast<int>(c);
-	}
-	return sum;
+vector<CryptoPP::byte> generate_key(string password) {
+	// Set a random salt (in practice, store this with the encrypted file)
+	CryptoPP::byte salt[16] = { 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x23, 0x45 };
+
+	// Set the number of iterations for PBKDF2 (e.g., 100000 iterations for better security)
+	const int iterations = 100000;
+
+	// Create vector for the derived key
+	vector<CryptoPP::byte> derivedKey(SHA256::DIGESTSIZE);
+
+	// Apply PBKDF2 to the password using the salt
+	PKCS5_PBKDF2_HMAC<SHA256> pbkdf2;
+	pbkdf2.DeriveKey(derivedKey.data(), derivedKey.size(), 0, reinterpret_cast<const CryptoPP::byte*>(password.c_str()), password.length(), salt, sizeof(salt), iterations);
+
+	return derivedKey;
 }
 
 //This function will encrypt / decrypt a single file
-void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, int key) {
+void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, fstream& tempFile, int choice, vector<CryptoPP::byte> key) {
 	int totalProcessed = 0;
 	
 	//Process file in chunks
 	while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || file.gcount() > 0) {
 		size_t bytesRead = file.gcount();
 		for (size_t i = 0; i < bytesRead; i++) {
-			//Encrypt
-			if (choice == 1)
-				buffer[i] = buffer[i] + key;
-			//Decrypt
-			if (choice == 2)
-				buffer[i] = buffer[i] - key;
+			//Encrypt Decrypt
+			buffer[i] ^= key[i % key.size()];
 		}
 
 		// Calculate and display progress
@@ -38,7 +49,7 @@ void encrypt_decrypt(uintmax_t fileSize, vector<unsigned char>& buffer, fstream&
 		tempFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
 	}
 }
-void decrypt_read_only(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, int key, double& total_sec, chrono::duration<double>& sec, auto& start) {
+void decrypt_read_only(uintmax_t fileSize, vector<unsigned char>& buffer, fstream& file, vector<CryptoPP::byte> key, double& total_sec, chrono::duration<double>& sec, auto& start) {
 	int totalProcessed = 0;
 
 	//Process file in chunks
@@ -46,7 +57,7 @@ void decrypt_read_only(uintmax_t fileSize, vector<unsigned char>& buffer, fstrea
 		size_t bytesRead = file.gcount();
 		//Decrypt
 		for (size_t i = 0; i < bytesRead; i++)
-			buffer[i] = buffer[i] - key;
+			buffer[i] ^= key[i % key.size()];
 
 		// Calculate and display progress
 		totalProcessed += bytesRead;
@@ -64,7 +75,7 @@ void decrypt_read_only(uintmax_t fileSize, vector<unsigned char>& buffer, fstrea
 //This function locates the current file, sends it for encryption/decryption, deletes it and replaces with new encrypted/decrypted file
 void open_file(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
-	int key = generate_key(password);
+	vector<CryptoPP::byte> key = generate_key(password);
 
 	//Open file to read / temp file to write
 	//tempFile is a temporary file which will save encrypted data of the file
@@ -117,7 +128,7 @@ void open_file(string filePath, string password, int choice, int chunk, chrono::
 //This function locates the current file, sends it for decryption. It keeps the OG file
 void open_file_read_only(string filePath, string password, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	//Get the password's sum of the decimal value of each letter to create the key and use it to encrypt / decrypt the byte
-	int key = generate_key(password);
+	vector <CryptoPP::byte> key = generate_key(password);
 
 	//Open file to read / temp file to write
 	//tempFile is a temporary file which will save encrypted data of the file
@@ -153,7 +164,7 @@ void open_file_read_only(string filePath, string password, int chunk, chrono::du
 //This function locates the current directory
 void open_directory(string filePath, string password, int choice, int chunk, chrono::duration<double>& sec, double& total_sec) {
 	for (const auto& entry : filesystem::directory_iterator(filePath)) {
-		int key = generate_key(password);
+		vector<CryptoPP::byte> key = generate_key(password);
 
 		try {
 			if (entry.is_regular_file()) {  
@@ -278,7 +289,7 @@ int main() {
 
 	while (go_again == true) {
 		system("cls");
-		cout << "~ File Encrypter ~" << endl << endl;
+		cout << "~ File Encrypter v2.3_1~" << endl << endl;
 		cout << "1) Encrypt\n2) Decrypt\n3) Decrypt (Read only)\n4) Set chunk size" << endl;
 		cout << "\nChoice: ";
 		cin >> choice;
