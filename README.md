@@ -1,7 +1,7 @@
-# File-Encrypter 📂
+# Da-File-Encrypter 📂
 
 ### **🎯 Overview**
-File-Encrypter is a comprehensive encryption and decryption tool designed for Windows environments, capable of handling both individual files and entire directories. By systematically modifying each byte of a selected file, this software ensures that its contents remain unreadable until decrypted using the appropriate mechanism.
+Da-File-Encrypter is a comprehensive encryption and decryption tool designed for Windows environments, capable of handling both individual files and entire directories. By systematically modifying each byte of a selected file, this software ensures that its contents remain unreadable until decrypted using the appropriate mechanism.
 
 ---
 
